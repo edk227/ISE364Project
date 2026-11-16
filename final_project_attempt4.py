@@ -315,3 +315,41 @@ accuracies = [
 
 for i in range(len(models)):
     print(models[i], ":", round(accuracies[i], 4))
+
+
+# --------------------------------
+# 14. Training vs Testing Accuracy
+# --------------------------------
+
+print("\nTRAINING VS TESTING ACCURACY")
+
+model_names = [
+    'Random Forest',
+    'Optimized Random Forest',
+    'Logistic Regression',
+    'SVM'
+]
+
+trained_models = [
+    rf_model,
+    best_model,
+    lr_model,
+    svm_model
+]
+
+for i in range(len(trained_models)):
+
+    train_accuracy = trained_models[i].score(
+        X_train, y_train
+    )
+
+    test_accuracy = trained_models[i].score(
+        X_test, y_test
+    )
+
+    print("\n", model_names[i])
+    print("Training Accuracy:", round(train_accuracy, 4))
+    print("Testing Accuracy:", round(test_accuracy, 4))
+    print("Difference:", round(
+        test_accuracy - train_accuracy, 4
+    ))
