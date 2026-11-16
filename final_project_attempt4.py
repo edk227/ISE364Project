@@ -1,8 +1,7 @@
 
-import csv
-import numpy as np
+import pandas as pd
 
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
@@ -21,6 +20,9 @@ from sklearn.metrics import (
 # 1. Load the dataset
 # --------------------------------
 
+train_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"
+test_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test"
+
 columns = [
     'age', 'workclass', 'fnlwgt', 'education',
     'education-num', 'marital-status', 'occupation',
@@ -29,42 +31,40 @@ columns = [
     'income'
 ]
 
-X_data = []
-y_data = []
+train = pd.read_csv(
+    train_url,
+    names=columns,
+    skipinitialspace=True
+)
+test = pd.read_csv(
+    test_url,
+    names=columns,
+    skiprows=1,
+    skipinitialspace=True
+)
 
-with open(r'C:\Users\cusua\Downloads\Data\Data\ISE464\Projects\adult.data', 'r') as file:
-    reader = csv.reader(file, skipinitialspace=True)
+# Treat the dataset's '?' missing-value markers as actual NaNs.
+train = train.replace('?', pd.NA)
+test = test.replace('?', pd.NA)
 
-    for row in reader:
+# Convert numeric columns in each split, keeping their original feature order.
+numerical_indices = [0, 2, 4, 10, 11, 12]
+for index in numerical_indices:
+    column = columns[index]
+    train[column] = pd.to_numeric(train[column], errors='coerce')
+    test[column] = pd.to_numeric(test[column], errors='coerce')
 
-        if len(row) != 15:
-            continue
-
-        row = [value.strip() for value in row]
-
-        # Separate target from features
-        features = row[:14]
-        income = row[14]
-
-        # Convert numerical features
-        numerical_indices = [0, 2, 4, 10, 11, 12]
-
-        for index in numerical_indices:
-            features[index] = float(features[index])
-
-        X_data.append(features)
-
-        if income == '<=50K':
-            y_data.append(0)
-        elif income == '>50K':
-            y_data.append(1)
-
-# Convert to NumPy arrays
-X = np.array(X_data, dtype=object)
-y = np.array(y_data)
+# Use the official UCI train and test files as separate datasets.
+X_train = train.iloc[:, :14].to_numpy(dtype=object)
+X_test = test.iloc[:, :14].to_numpy(dtype=object)
+y_train = train['income'].str.strip().map({'<=50K': 0, '>50K': 1}).to_numpy()
+y_test = (
+    test['income'].str.strip().str.rstrip('.').map({'<=50K': 0, '>50K': 1}).to_numpy()
+)
 
 print("Dataset loaded successfully")
-print("Dataset shape:", X.shape)
+print("Training shape:", X_train.shape)
+print("Test shape:", X_test.shape)
 
 # --------------------------------
 # 2. Identify feature types
@@ -118,16 +118,8 @@ scaled_preprocessor = ColumnTransformer(transformers=[
 ])
 
 # --------------------------------
-# 4. Train-test split
+# 4. Use the supplied train-test split
 # --------------------------------
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
-)
 
 # --------------------------------
 # 5. Random Forest pipeline
