@@ -54,9 +54,14 @@ for index in numerical_indices:
     train[column] = pd.to_numeric(train[column], errors='coerce')
     test[column] = pd.to_numeric(test[column], errors='coerce')
 
+# Drop the redundant features from both splits before building model inputs.
+features_to_drop = ['fnlwgt', 'education']
+train = train.drop(columns=features_to_drop)
+test = test.drop(columns=features_to_drop)
+
 # Use the official UCI train and test files as separate datasets.
-X_train = train.iloc[:, :14].to_numpy(dtype=object)
-X_test = test.iloc[:, :14].to_numpy(dtype=object)
+X_train = train.drop(columns='income')
+X_test = test.drop(columns='income')
 y_train = train['income'].str.strip().map({'<=50K': 0, '>50K': 1}).to_numpy()
 y_test = (
     test['income'].str.strip().str.rstrip('.').map({'<=50K': 0, '>50K': 1}).to_numpy()
@@ -70,9 +75,14 @@ print("Test shape:", X_test.shape)
 # 2. Identify feature types
 # --------------------------------
 
-numerical_features = [0, 2, 4, 10, 11, 12]
+numerical_features = [
+    'age', 'education-num', 'capital-gain', 'capital-loss', 'hours-per-week'
+]
 
-categorical_features = [1, 3, 5, 6, 7, 8, 9, 13]
+categorical_features = [
+    'workclass', 'marital-status', 'occupation', 'relationship',
+    'race', 'sex', 'native-country'
+]
 
 # --------------------------------
 # 3. Preprocessing
