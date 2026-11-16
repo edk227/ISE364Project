@@ -8,6 +8,9 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -90,6 +93,28 @@ categorical_transformer = Pipeline(steps=[
 preprocessor = ColumnTransformer(transformers=[
     ('num', numerical_transformer, numerical_features),
     ('cat', categorical_transformer, categorical_features)
+])
+
+# --------------------------------
+# Additional preprocessing for Logistic Regression and SVM
+# --------------------------------
+
+numerical_transformer_scaled = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
+
+categorical_transformer_scaled = Pipeline(steps=[
+    ('imputer', SimpleImputer(
+        strategy='constant',
+        fill_value='Missing'
+    )),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+scaled_preprocessor = ColumnTransformer(transformers=[
+    ('num', numerical_transformer_scaled, numerical_features),
+    ('cat', categorical_transformer_scaled, categorical_features)
 ])
 
 # --------------------------------
@@ -204,3 +229,97 @@ print(classification_report(
 
 print("\nOptimized Confusion Matrix:")
 print(confusion_matrix(y_test, y_pred_best))
+
+# --------------------------------
+# 11. Logistic Regression
+# --------------------------------
+
+lr_model = Pipeline(steps=[
+    ('preprocessor', scaled_preprocessor),
+    ('classifier', LogisticRegression(
+        max_iter=2000,
+        random_state=42
+    ))
+])
+
+# Train model
+lr_model.fit(X_train, y_train)
+
+# Make predictions
+y_pred_lr = lr_model.predict(X_test)
+
+# Evaluate model
+print("\nLogistic Regression Results")
+
+print("Training Accuracy:",
+      lr_model.score(X_train, y_train))
+
+print("Testing Accuracy:",
+      accuracy_score(y_test, y_pred_lr))
+
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    y_pred_lr,
+    target_names=['<=50K', '>50K']
+))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred_lr))
+
+# --------------------------------
+# 12. Support Vector Machine
+# --------------------------------
+
+from sklearn.svm import LinearSVC
+
+svm_model = Pipeline(steps=[
+    ('preprocessor', scaled_preprocessor),
+    ('classifier', LinearSVC(
+        C=1.0,
+        max_iter=5000,
+        random_state=42
+    ))
+])
+
+# Train model
+svm_model.fit(X_train, y_train)
+
+# Make predictions
+y_pred_svm = svm_model.predict(X_test)
+
+# Evaluate model
+print("\nSupport Vector Machine Results")
+
+print("Training Accuracy:",
+      svm_model.score(X_train, y_train))
+
+print("Testing Accuracy:",
+      accuracy_score(y_test, y_pred_svm))
+
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    y_pred_svm,
+    target_names=['<=50K', '>50K']
+))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred_svm))
+
+# --------------------------------
+# 13. Model Comparison
+# --------------------------------
+
+print("\nMODEL COMPARISON")
+
+models = ['Random Forest', 'Logistic Regression', 'SVM']
+
+accuracies = [
+    accuracy_score(y_test, y_pred_best),
+    accuracy_score(y_test, y_pred_lr),
+    accuracy_score(y_test, y_pred_svm)
+]
+
+for i in range(len(models)):
+    print(models[i], ":", round(accuracies[i], 4))
